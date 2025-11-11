@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reconocimiento de voz con sonidos personalizados</title>
+  <title>Reconocimiento de voz + sonidos personalizados</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,19 +13,13 @@
       margin: 0;
       padding: 2rem;
     }
-    h1 {
-      color: #007bff;
-    }
+    h1 { color: #007bff; }
     input, button {
       margin: 5px;
       padding: 10px;
       font-size: 1rem;
     }
-    #estado {
-      margin-top: 15px;
-      font-weight: bold;
-      color: green;
-    }
+    button { cursor: pointer; }
     .frase {
       background: white;
       margin: 10px auto;
@@ -34,14 +28,24 @@
       max-width: 400px;
       box-shadow: 0 0 5px rgba(0,0,0,0.2);
     }
+    #estado {
+      font-weight: bold;
+      margin-top: 20px;
+      color: green;
+    }
+    #ultimoTexto {
+      font-style: italic;
+      margin-top: 10px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
-  <h1>🎤 Panel de frases con sonidos 🎵</h1>
-  <p>Permite el micrófono para poder hablar y activar tus sonidos.</p>
+  <h1>🎙️ Frases con sonidos personalizados 🎵</h1>
+  <p>Permite el micrófono para poder decir tus frases y escuchar los sonidos.</p>
 
   <div>
-    <input id="fraseInput" type="text" placeholder="Escribe tu frase (ej: hola mundo)" />
+    <input id="fraseInput" type="text" placeholder="Frase (ej: hola mundo)" />
     <input id="audioInput" type="text" placeholder="URL del audio (.mp3 o .wav)" />
     <button id="agregarBtn">Agregar</button>
   </div>
@@ -53,7 +57,7 @@
   <p id="ultimoTexto"></p>
 
   <script>
-    // Guardar y cargar frases desde localStorage
+    // 🗂️ Frases guardadas
     const frases = JSON.parse(localStorage.getItem('frasesGuardadas')) || {};
 
     function guardarFrases() {
@@ -72,7 +76,87 @@
       }
     }
 
+    mostrarFrases();
+
+    // 🎤 Reconocimiento de voz
+    const reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let rec, escuchando = false;
+
+    if (reconocimiento) {
+      rec = new reconocimiento();
+      rec.continuous = true;
+      rec.lang = "es-ES";
+
+      const estado = document.getElementById("estado");
+      const ultimoTexto = document.getElementById("ultimoTexto");
+
+      rec.onstart = () => {
+        escuchando = true;
+        estado.textContent = "🎧 Escuchando...";
+        estado.style.color = "green";
+      };
+
+      rec.onend = () => {
+        escuchando = false;
+        estado.textContent = "Micrófono pausado. Reiniciando...";
+        estado.style.color = "red";
+        setTimeout(() => {
+          try { rec.start(); } catch {}
+        }, 1000);
+      };
+
+      rec.onresult = (event) => {
+        const texto = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+        ultimoTexto.textContent = "Escuchado: " + texto;
+        console.log("Escuchado:", texto);
+        if (frases[texto]) {
+          const sonido = new Audio(frases[texto]);
+          sonido.play().catch(err => console.error("Error al reproducir audio:", err));
+        }
+      };
+
+      rec.onerror = (e) => {
+        estado.textContent = "❌ Error: " + e.error;
+        estado.style.color = "red";
+      };
+
+      // Iniciar micrófono
+      try {
+        rec.start();
+      } catch (err) {
+        console.error("Error al iniciar:", err);
+      }
+    } else {
+      alert("Tu navegador no soporta reconocimiento de voz 😢");
+    }
+
+    // 🔘 Agregar frases sin romper el reconocimiento
     document.getElementById("agregarBtn").addEventListener("click", () => {
+      if (rec && escuchando) {
+        rec.stop(); // pausa para permitir interacción
+      }
+
       const frase = document.getElementById("fraseInput").value.trim().toLowerCase();
       const audio = document.getElementById("audioInput").value.trim();
-      if (!frase
+      if (!frase || !audio) {
+        alert("Debes escribir una frase y una URL válida de audio (.mp3 o .wav).");
+        if (rec && !escuchando) setTimeout(() => rec.start(), 1500);
+        return;
+      }
+
+      frases[frase] = audio;
+      guardarFrases();
+      document.getElementById("fraseInput").value = "";
+      document.getElementById("audioInput").value = "";
+
+      // Reactivar micrófono
+      if (rec && !escuchando) {
+        setTimeout(() => {
+          try { rec.start(); } catch {}
+        }, 1500);
+      }
+    });
+  </script>
+</body>
+</html>
+
