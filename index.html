@@ -3,125 +3,100 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reconocimiento de voz con sonidos personalizados 🎤</title>
+  <title>Reconocimiento de voz con sonido</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      text-align: center;
-      padding: 2em;
+      background: #f0f2f5;
       color: #222;
+      text-align: center;
+      margin: 0;
+      padding: 2rem;
     }
-    h1 {
-      color: #333;
-    }
+    h1 { color: #007bff; }
     input, button {
-      margin: 6px;
+      margin: 5px;
+      padding: 10px;
+      font-size: 1rem;
+    }
+    .frase {
+      background: white;
+      margin: 10px auto;
       padding: 10px;
       border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    button {
-      cursor: pointer;
-      background-color: #0078d7;
-      color: white;
-      border: none;
-      transition: 0.2s;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-      color: #444;
-    }
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-      width: 80%;
-      background: #fff;
-    }
-    td, th {
-      border: 1px solid #ccc;
-      padding: 8px;
+      max-width: 400px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
     }
   </style>
 </head>
 <body>
-  <h1>🎧 Frases y sonidos personalizados</h1>
-  <p>Agrega tus propias frases y sonidos. Luego presiona “Iniciar micrófono”.</p>
+  <h1>🎤 Tu panel de frases con sonidos 🎵</h1>
+  <p>Permite el micrófono para poder decir tus frases.</p>
 
   <div>
-    <input type="text" id="frase" placeholder="Frase a reconocer (ej: hola)">
-    <input type="text" id="sonido" placeholder="URL del sonido (.mp3, .ogg...)">
+    <input id="fraseInput" type="text" placeholder="Escribe tu frase (ej: hola mundo)" />
+    <input id="audioInput" type="text" placeholder="URL del audio (.mp3 o .wav)" />
     <button id="agregarBtn">Agregar</button>
   </div>
 
-  <table id="tabla">
-    <thead>
-      <tr><th>Frase</th><th>Sonido</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <button id="startBtn">🎙️ Iniciar micrófono</button>
-  <div id="status">Micrófono apagado.</div>
+  <h3>Frases registradas:</h3>
+  <div id="listaFrases"></div>
 
   <script>
-    const btn = document.getElementById("startBtn");
-    const addBtn = document.getElementById("agregarBtn");
-    const status = document.getElementById("status");
-    const tabla = document.querySelector("#tabla tbody");
-    const frases = {};
+    // Guardar y cargar frases desde localStorage
+    const frases = JSON.parse(localStorage.getItem('frasesGuardadas')) || {};
 
-    addBtn.onclick = () => {
-      const frase = document.getElementById("frase").value.trim().toLowerCase();
-      const sonido = document.getElementById("sonido").value.trim();
-
-      if (!frase || !sonido) {
-        alert("Debes escribir una frase y un enlace de sonido válido.");
-        return;
-      }
-
-      frases[frase] = sonido;
-      const row = document.createElement("tr");
-      row.innerHTML = `<td>${frase}</td><td>${sonido}</td>`;
-      tabla.appendChild(row);
-
-      document.getElementById("frase").value = "";
-      document.getElementById("sonido").value = "";
-    };
-
-    btn.onclick = () => {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.");
-        return;
-      }
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = "es-ES";
-      recognition.continuous = false;
-
-      recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
-      recognition.onresult = (event) => {
-  const frase = event.results[0][0].transcript.toLowerCase();
-  status.textContent = `Dijiste: "${frase}"`;
-
-  for (const clave in frases) {
-    if (frase.includes(clave)) {
-      const audio = new Audio(frases[clave]);
-      audio.play().then(() => {
-        status.textContent += " | 🔊 Reproduciendo sonido.";
-      }).catch(err => {
-        console.error("Error al reproducir sonido:", err);
-        status.textContent += " | ⚠️ No se pudo reproducir el sonido.";
-      });
+    function guardarFrases() {
+      localStorage.setItem('frasesGuardadas', JSON.stringify(frases));
+      mostrarFrases();
     }
-  }
 
-  // Esto evita que se apague inmediatamente
-  setTimeout(() => recognition.stop(), 1500);
-};
+    function mostrarFrases() {
+      const lista = document.getElementById("listaFrases");
+      lista.innerHTML = "";
+      for (const frase in frases) {
+        const div = document.createElement("div");
+        div.className = "frase";
+        div.textContent = `${frase} → ${frases[frase]}`;
+        lista.appendChild(div);
+      }
+    }
+
+    document.getElementById("agregarBtn").addEventListener("click", () => {
+      const frase = document.getElementById("fraseInput").value.trim().toLowerCase();
+      const audio = document.getElementById("audioInput").value.trim();
+      if (!frase || !audio) {
+        alert("Debes escribir una frase y una URL de audio válida.");
+        return;
+      }
+      frases[frase] = audio;
+      guardarFrases();
+      document.getElementById("fraseInput").value = "";
+      document.getElementById("audioInput").value = "";
+    });
+
+    mostrarFrases();
+
+    // Reconocimiento de voz
+    const reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (reconocimiento) {
+      const rec = new reconocimiento();
+      rec.continuous = true;
+      rec.lang = "es-ES";
+      rec.onresult = (event) => {
+        const texto = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+        console.log("Escuchado:", texto);
+        if (frases[texto]) {
+          const sonido = new Audio(frases[texto]);
+          sonido.play().catch(err => console.error("Error al reproducir audio:", err));
+        }
+      };
+      rec.onerror = (e) => console.error("Error del micrófono:", e);
+      rec.start();
+    } else {
+      alert("Tu navegador no soporta reconocimiento de voz 😢");
+    }
+  </script>
+</body>
+</html>
+
