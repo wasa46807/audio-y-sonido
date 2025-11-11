@@ -3,111 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reproductor por Frase</title>
+  <title>Reproductor por voz</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      color: #222;
+      background: #f3f3f3;
       text-align: center;
-      padding: 2em;
+      padding: 50px;
+      color: #222;
     }
-    h1 { color: #333; }
-    input, button {
-      margin: 5px;
-      padding: 10px;
-      font-size: 1em;
-      border-radius: 5px;
-      border: 1px solid #aaa;
+    h1 {
+      color: #333;
     }
     button {
-      background: #007bff;
+      padding: 10px 20px;
+      margin-top: 20px;
+      background: #0078D7;
       color: white;
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
     }
-    button:hover { background: #0056b3; }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-      color: #007bff;
+    button:hover {
+      background: #005ea3;
     }
-    .map-list { margin-top: 20px; }
+    #status {
+      margin-top: 25px;
+      font-weight: bold;
+      color: #444;
+    }
   </style>
 </head>
 <body>
-  <h1>🎤 Reproductor por Frase</h1>
-  <p>Agrega una frase y el sonido que quieras reproducir al decirla.</p>
+  <h1>🎙️ Control por voz con sonido</h1>
+  <p>Haz clic en "Activar micrófono" y di tu frase programada.</p>
 
-  <div>
-    <input id="phrase" placeholder="Frase (ej: hola mundo)" />
-    <input id="audioUrl" placeholder="URL del audio (ej: https://...)" />
-    <button onclick="addMapping()">Añadir</button>
-  </div>
-
-  <div class="map-list" id="mapList"></div>
-
-  <button onclick="startListening()">🎧 Iniciar Escucha</button>
-  <div id="status">Micrófono inactivo</div>
+  <button id="start-btn">Activar micrófono</button>
+  <p id="status">Micrófono desactivado</p>
 
   <script>
-    const mappings = {};
-    const mapList = document.getElementById('mapList');
-    const statusEl = document.getElementById('status');
+    const frases = {
+      "hola": "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
+      "adiós": "https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg",
+      "activar": "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+    };
 
-    function addMapping() {
-      const phrase = document.getElementById('phrase').value.trim().toLowerCase();
-      const audioUrl = document.getElementById('audioUrl').value.trim();
-      if (!phrase || !audioUrl) {
-        alert('Por favor ingresa una frase y una URL de audio.');
-        return;
-      }
-      mappings[phrase] = audioUrl;
-      const item = document.createElement('p');
-      item.textContent = `"${phrase}" → ${audioUrl}`;
-      mapList.appendChild(item);
-      document.getElementById('phrase').value = '';
-      document.getElementById('audioUrl').value = '';
-    }
+    const btn = document.getElementById("start-btn");
+    const status = document.getElementById("status");
 
-    function startListening() {
-      if (!('webkitSpeechRecognition' in window)) {
-        alert('Tu navegador no soporta reconocimiento de voz.');
+    btn.onclick = () => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Tu navegador no soporta reconocimiento de voz.");
         return;
       }
 
-      const recognition = new webkitSpeechRecognition();
-      recognition.lang = 'es-ES';
-      recognition.continuous = true;
-      recognition.interimResults = false;
+      const recognition = new SpeechRecognition();
+      recognition.lang = "es-ES";
+      recognition.continuous = false;
 
       recognition.onstart = () => {
-        statusEl.textContent = '🎙️ Escuchando...';
-        statusEl.style.color = '#28a745';
-      };
-
-      recognition.onend = () => {
-        statusEl.textContent = 'Micrófono detenido. Pulsa "Iniciar Escucha" para continuar.';
-        statusEl.style.color = '#dc3545';
+        status.textContent = "🎧 Escuchando...";
       };
 
       recognition.onresult = (event) => {
-        const said = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-        console.log('Escuchado:', said);
-        if (mappings[said]) {
-          const audio = new Audio(mappings[said]);
-          audio.play();
+        const frase = event.results[0][0].transcript.toLowerCase();
+        status.textContent = `Dijiste: "${frase}"`;
+
+        for (const clave in frases) {
+          if (frase.includes(clave)) {
+            const audio = new Audio(frases[clave]);
+            audio.play();
+            status.textContent += " 🔊 (Reproduciendo sonido)";
+          }
         }
       };
 
-      recognition.onerror = (event) => {
-        console.error('Error:', event.error);
-        statusEl.textContent = 'Error: ' + event.error;
-        statusEl.style.color = '#dc3545';
+      recognition.onerror = () => {
+        status.textContent = "❌ Error al reconocer voz.";
+      };
+
+      recognition.onend = () => {
+        status.textContent += " | Micrófono desactivado.";
       };
 
       recognition.start();
-      alert('🎤 Escucha iniciada. Permite el micrófono si el navegador lo solicita.');
-    }
+    };
   </script>
 </body>
 </html>
+
