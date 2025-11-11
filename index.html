@@ -107,23 +107,21 @@
 
       recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
       recognition.onresult = (event) => {
-        const frase = event.results[0][0].transcript.toLowerCase();
-        status.textContent = `Dijiste: "${frase}"`;
+  const frase = event.results[0][0].transcript.toLowerCase();
+  status.textContent = `Dijiste: "${frase}"`;
 
-        for (const clave in frases) {
-          if (frase.includes(clave)) {
-            const audio = new Audio(frases[clave]);
-            audio.play();
-            status.textContent += " | 🔊 Reproduciendo sonido.";
-          }
-        }
-      };
-      recognition.onerror = () => status.textContent = "❌ Error al reconocer la voz.";
-      recognition.onend = () => status.textContent += " | Micrófono apagado.";
+  for (const clave in frases) {
+    if (frase.includes(clave)) {
+      const audio = new Audio(frases[clave]);
+      audio.play().then(() => {
+        status.textContent += " | 🔊 Reproduciendo sonido.";
+      }).catch(err => {
+        console.error("Error al reproducir sonido:", err);
+        status.textContent += " | ⚠️ No se pudo reproducir el sonido.";
+      });
+    }
+  }
 
-      recognition.start();
-    };
-  </script>
-</body>
-</html>
-
+  // Esto evita que se apague inmediatamente
+  setTimeout(() => recognition.stop(), 1500);
+};
