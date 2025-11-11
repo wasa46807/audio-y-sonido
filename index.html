@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reproductor por voz 🎙️</title>
+  <title>Reconocimiento de voz con sonidos personalizados 🎤</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,14 +15,18 @@
     h1 {
       color: #333;
     }
+    input, button {
+      margin: 6px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
     button {
+      cursor: pointer;
       background-color: #0078d7;
       color: white;
       border: none;
-      padding: 12px 24px;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
       transition: 0.2s;
     }
     button:hover {
@@ -33,23 +37,61 @@
       font-weight: bold;
       color: #444;
     }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 80%;
+      background: #fff;
+    }
+    td, th {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
-  <h1>🎧 Reproductor por voz</h1>
-  <p>Presiona el botón y di una frase como “hola” o “adiós”.</p>
-  <button id="startBtn">🎤 Iniciar micrófono</button>
+  <h1>🎧 Frases y sonidos personalizados</h1>
+  <p>Agrega tus propias frases y sonidos. Luego presiona “Iniciar micrófono”.</p>
+
+  <div>
+    <input type="text" id="frase" placeholder="Frase a reconocer (ej: hola)">
+    <input type="text" id="sonido" placeholder="URL del sonido (.mp3, .ogg...)">
+    <button id="agregarBtn">Agregar</button>
+  </div>
+
+  <table id="tabla">
+    <thead>
+      <tr><th>Frase</th><th>Sonido</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button id="startBtn">🎙️ Iniciar micrófono</button>
   <div id="status">Micrófono apagado.</div>
 
   <script>
     const btn = document.getElementById("startBtn");
+    const addBtn = document.getElementById("agregarBtn");
     const status = document.getElementById("status");
+    const tabla = document.querySelector("#tabla tbody");
+    const frases = {};
 
-    // Frases y sonidos personalizados
-    const frases = {
-      "hola": "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
-      "adiós": "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
-      "gracias": "https://actions.google.com/sounds/v1/human_voices/applause.ogg"
+    addBtn.onclick = () => {
+      const frase = document.getElementById("frase").value.trim().toLowerCase();
+      const sonido = document.getElementById("sonido").value.trim();
+
+      if (!frase || !sonido) {
+        alert("Debes escribir una frase y un enlace de sonido válido.");
+        return;
+      }
+
+      frases[frase] = sonido;
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${frase}</td><td>${sonido}</td>`;
+      tabla.appendChild(row);
+
+      document.getElementById("frase").value = "";
+      document.getElementById("sonido").value = "";
     };
 
     btn.onclick = () => {
@@ -63,10 +105,7 @@
       recognition.lang = "es-ES";
       recognition.continuous = false;
 
-      recognition.onstart = () => {
-        status.textContent = "🎙️ Escuchando...";
-      };
-
+      recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
       recognition.onresult = (event) => {
         const frase = event.results[0][0].transcript.toLowerCase();
         status.textContent = `Dijiste: "${frase}"`;
@@ -79,14 +118,8 @@
           }
         }
       };
-
-      recognition.onerror = () => {
-        status.textContent = "❌ Error al reconocer la voz.";
-      };
-
-      recognition.onend = () => {
-        status.textContent += " | Micrófono apagado.";
-      };
+      recognition.onerror = () => status.textContent = "❌ Error al reconocer la voz.";
+      recognition.onend = () => status.textContent += " | Micrófono apagado.";
 
       recognition.start();
     };
