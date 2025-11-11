@@ -3,58 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reproductor por voz</title>
+  <title>Reproductor por voz 🎙️</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f3f3f3;
+      background-color: #f4f4f4;
       text-align: center;
-      padding: 50px;
+      padding: 2em;
       color: #222;
     }
     h1 {
       color: #333;
     }
     button {
-      padding: 10px 20px;
-      margin-top: 20px;
-      background: #0078D7;
+      background-color: #0078d7;
       color: white;
       border: none;
-      border-radius: 6px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
       cursor: pointer;
+      transition: 0.2s;
     }
     button:hover {
-      background: #005ea3;
+      background-color: #005fa3;
     }
     #status {
-      margin-top: 25px;
+      margin-top: 20px;
       font-weight: bold;
       color: #444;
     }
   </style>
 </head>
 <body>
-  <h1>🎙️ Control por voz con sonido</h1>
-  <p>Haz clic en "Activar micrófono" y di tu frase programada.</p>
-
-  <button id="start-btn">Activar micrófono</button>
-  <p id="status">Micrófono desactivado</p>
+  <h1>🎧 Reproductor por voz</h1>
+  <p>Presiona el botón y di una frase como “hola” o “adiós”.</p>
+  <button id="startBtn">🎤 Iniciar micrófono</button>
+  <div id="status">Micrófono apagado.</div>
 
   <script>
-    const frases = {
-      "hola": "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
-      "adiós": "https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg",
-      "activar": "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
-    };
-
-    const btn = document.getElementById("start-btn");
+    const btn = document.getElementById("startBtn");
     const status = document.getElementById("status");
+
+    // Frases y sonidos personalizados
+    const frases = {
+      "hola": "https://actions.google.com/sounds/v1/alarms/beep_short.ogg",
+      "adiós": "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
+      "gracias": "https://actions.google.com/sounds/v1/human_voices/applause.ogg"
+    };
 
     btn.onclick = () => {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert("Tu navegador no soporta reconocimiento de voz.");
+        alert("Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.");
         return;
       }
 
@@ -63,7 +64,7 @@
       recognition.continuous = false;
 
       recognition.onstart = () => {
-        status.textContent = "🎧 Escuchando...";
+        status.textContent = "🎙️ Escuchando...";
       };
 
       recognition.onresult = (event) => {
@@ -74,17 +75,17 @@
           if (frase.includes(clave)) {
             const audio = new Audio(frases[clave]);
             audio.play();
-            status.textContent += " 🔊 (Reproduciendo sonido)";
+            status.textContent += " | 🔊 Reproduciendo sonido.";
           }
         }
       };
 
       recognition.onerror = () => {
-        status.textContent = "❌ Error al reconocer voz.";
+        status.textContent = "❌ Error al reconocer la voz.";
       };
 
       recognition.onend = () => {
-        status.textContent += " | Micrófono desactivado.";
+        status.textContent += " | Micrófono apagado.";
       };
 
       recognition.start();
