@@ -78,7 +78,14 @@
 
     addBtn.onclick = () => {
       const frase = document.getElementById("frase").value.trim().toLowerCase();
-      const sonido = document.getElementById("sonido").value.trim();
+    const archivo = document.getElementById("audioInput").files[0];
+if (!frase || !archivo) {
+  alert("Por favor escribe una frase y selecciona un archivo de audio (.mp3 o .ogg)");
+  return;
+}
+
+const url = URL.createObjectURL(archivo);
+frases[frase] = url;
 
       if (!frase || !sonido) {
         alert("Debes escribir una frase y un enlace de sonido válido.");
@@ -126,4 +133,5 @@
   </script>
 </body>
 </html>
+
 
