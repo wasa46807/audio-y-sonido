@@ -1,151 +1,78 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reconocimiento de voz con sonidos personalizados 🎤</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      text-align: center;
-      padding: 2em;
-      color: #222;
-    }
-    h1 {
-      color: #333;
-    }
-    input, button {
-      margin: 6px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    button {
-      cursor: pointer;
-      background-color: #0078d7;
-      color: white;
-      border: none;
-      transition: 0.2s;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-      color: #444;
-    }
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-      width: 80%;
-      background: #fff;
-    }
-    td, th {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-  </style>
-</head>
-<body>
-  <h1>🎧 Frases y sonidos personalizados</h1>
-  <p>Agrega tus propias frases y sonidos. Luego presiona “Iniciar micrófono”.</p>
+<script>
+  const frases = {};
+  const tabla = document.getElementById("tabla");
+  const audioInput = document.getElementById("audioInput");
+  const nombreSonido = document.getElementById("nombreSonido");
 
-  <!-- Sección de entrada -->
-  <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
-    <input type="text" id="frase" placeholder="Frase a reconocer (ej: hola)">
-    <button id="btnMP3" type="button">🎵 MP3</button>
-    <input type="file" id="audioInput" accept="audio/mp3,audio/mpeg,audio/ogg" style="display:none;">
-    <input type="text" id="nombreSonido" placeholder="Ningún archivo seleccionado" readonly style="flex:1; padding:5px;">
-    <button id="agregarBtn">Agregar</button>
-  </div>
+  let recognition;
+  let escuchando = false;
 
-  <!-- Tabla -->
-  <table id="tabla">
-    <thead>
-      <tr><th>Frase</th><th>Sonido</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  // Seleccionar archivo
+  document.getElementById("btnMP3").onclick = () => audioInput.click();
 
-  <button id="startBtn">🎙️ Iniciar micrófono</button>
-  <div id="status">Micrófono apagado.</div>
+  audioInput.onchange = () => {
+    const file = audioInput.files[0];
+    nombreSonido.value = file ? file.name : "Ningún archivo seleccionado";
+  };
 
-  <script>
-    const btn = document.getElementById("startBtn");
-    const addBtn = document.getElementById("agregarBtn");
-    const btnMP3 = document.getElementById("btnMP3");
-    const audioInput = document.getElementById("audioInput");
-    const nombreSonido = document.getElementById("nombreSonido");
-    const status = document.getElementById("status");
-    const tabla = document.querySelector("#tabla tbody");
-    const frases = {};
+  // Agregar frase + audio
+  document.getElementById("agregarBtn").onclick = () => {
+    const frase = document.getElementById("frase").value.trim().toLowerCase();
+    const file = audioInput.files[0];
 
-    // Botón para seleccionar archivo
-    btnMP3.onclick = () => audioInput.click();
+    if (!frase || !file) return alert("Debes poner frase y sonido.");
 
-    // Mostrar nombre del archivo
-    audioInput.onchange = () => {
-      const archivo = audioInput.files[0];
-      nombreSonido.value = archivo ? archivo.name : "Ningún archivo seleccionado";
+    frases[frase] = URL.createObjectURL(file);
+
+    tabla.innerHTML += `<tr><td>${frase}</td><td>${file.name}</td></tr>`;
+
+    document.getElementById("frase").value = "";
+    audioInput.value = "";
+    nombreSonido.value = "Ningún archivo seleccionado";
+  };
+
+  // Activar modo escucha infinita
+  document.getElementById("startBtn").onclick = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Tu navegador no soporta reconocimiento de voz.");
+
+    if (escuchando) return; // Evitar doble inicio
+    escuchando = true;
+
+    recognition = new SpeechRecognition();
+    recognition.lang = "es-ES";
+    recognition.continuous = false; // Igual lo forzamos a reiniciar
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      status.textContent = "🎙️ Escuchando continuamente...";
     };
 
-    // Agregar frase y sonido
-    addBtn.onclick = () => {
-      const frase = document.getElementById("frase").value.trim().toLowerCase();
-      const archivo = audioInput.files[0];
-      if (!frase || !archivo) {
-        alert("Por favor escribe una frase y selecciona un archivo de audio (.mp3 o .ogg)");
-        return;
-      }
+    recognition.onresult = e => {
+      const dicho = e.results[0][0].transcript.toLowerCase();
+      status.textContent = `Dijiste: "${dicho}"`;
 
-      const url = URL.createObjectURL(archivo);
-      frases[frase] = url;
-
-      const row = document.createElement("tr");
-      row.innerHTML = `<td>${frase}</td><td>${archivo.name}</td>`;
-      tabla.appendChild(row);
-
-      document.getElementById("frase").value = "";
-      audioInput.value = "";
-      nombreSonido.value = "Ningún archivo seleccionado";
-    };
-
-    // Activar micrófono
-    btn.onclick = () => {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.");
-        return;
-      }
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = "es-ES";
-      recognition.continuous = false;
-
-      recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
-      recognition.onresult = (event) => {
-        const frase = event.results[0][0].transcript.toLowerCase();
-        status.textContent = `Dijiste: "${frase}"`;
-
-        for (const clave in frases) {
-          if (frase.includes(clave)) {
-            const audio = new Audio(frases[clave]);
-            audio.play();
-            status.textContent += " | 🔊 Reproduciendo sonido.";
-          }
+      // Buscar frase y reproducir audio
+      for (const key in frases) {
+        if (dicho.includes(key)) {
+          const audio = new Audio(frases[key]);
+          audio.play();
+          status.textContent += " | 🔊 Reproduciendo...";
         }
-      };
-      recognition.onerror = () => status.textContent = "❌ Error al reconocer la voz.";
-      recognition.onend = () => status.textContent += " | Micrófono apagado.";
-
-      recognition.start();
+      }
     };
-  </script>
-</body>
-</html>
 
+    recognition.onerror = () => {
+      status.textContent = "⚠️ Error. Reiniciando...";
+    };
 
+    // El truco para que nunca se apague
+    recognition.onend = () => {
+      if (!escuchando) return;
+      status.textContent = "🎙️ Escuchando...";
+      recognition.start(); // Reanudar SIEMPRE
+    };
 
+    recognition.start();
+  };
+</script>
