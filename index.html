@@ -3,74 +3,65 @@
   const tabla = document.getElementById("tabla");
   const audioInput = document.getElementById("audioInput");
   const nombreSonido = document.getElementById("nombreSonido");
+  let recognition; // importante declararlo afuera
+  let escuchando = false; // para evitar loops dobles
 
-  let recognition;
-  let escuchando = false;
-
-  // Seleccionar archivo
   document.getElementById("btnMP3").onclick = () => audioInput.click();
 
   audioInput.onchange = () => {
     const file = audioInput.files[0];
-    nombreSonido.value = file ? file.name : "Ningún archivo seleccionado";
+    nombreSonido.value = file ? file.name : "Ningún archivo";
   };
 
-  // Agregar frase + audio
   document.getElementById("agregarBtn").onclick = () => {
     const frase = document.getElementById("frase").value.trim().toLowerCase();
     const file = audioInput.files[0];
 
-    if (!frase || !file) return alert("Debes poner frase y sonido.");
+    if (!frase || !file) return alert("Completa la frase y el sonido.");
 
     frases[frase] = URL.createObjectURL(file);
-
     tabla.innerHTML += `<tr><td>${frase}</td><td>${file.name}</td></tr>`;
 
     document.getElementById("frase").value = "";
     audioInput.value = "";
-    nombreSonido.value = "Ningún archivo seleccionado";
+    nombreSonido.value = "Ningún archivo";
   };
 
-  // Activar modo escucha infinita
   document.getElementById("startBtn").onclick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return alert("Tu navegador no soporta reconocimiento de voz.");
 
-    if (escuchando) return; // Evitar doble inicio
+    if (escuchando) return; // evitar iniciar 2 veces
     escuchando = true;
 
     recognition = new SpeechRecognition();
     recognition.lang = "es-ES";
-    recognition.continuous = false; // Igual lo forzamos a reiniciar
+    recognition.continuous = false; // igual lo forzamos a reiniciar
     recognition.interimResults = false;
 
-    recognition.onstart = () => {
-      status.textContent = "🎙️ Escuchando continuamente...";
-    };
+    recognition.onstart = () => status.textContent = "🎙️ Escuchando sin parar...";
 
-    recognition.onresult = e => {
-      const dicho = e.results[0][0].transcript.toLowerCase();
+    recognition.onresult = event => {
+      const dicho = event.results[0][0].transcript.toLowerCase();
       status.textContent = `Dijiste: "${dicho}"`;
 
-      // Buscar frase y reproducir audio
       for (const key in frases) {
         if (dicho.includes(key)) {
-          const audio = new Audio(frases[key]);
-          audio.play();
+          new Audio(frases[key]).play();
           status.textContent += " | 🔊 Reproduciendo...";
         }
       }
     };
 
     recognition.onerror = () => {
-      status.textContent = "⚠️ Error. Reiniciando...";
+      status.textContent = "⚠️ Error, reiniciando...";
     };
 
-    // El truco para que nunca se apague
+    // ❤️ El truco mágico:
     recognition.onend = () => {
       if (!escuchando) return;
       status.textContent = "🎙️ Escuchando...";
-      recognition.start(); // Reanudar SIEMPRE
+      recognition.start(); // reinicia siempre
     };
 
     recognition.start();
