@@ -22,218 +22,121 @@
             border-radius:6px;
             font-weight:bold;
         }
+        #micStatus{
+            font-weight:bold;
+            color:green;
+            margin-left:10px;
+        }
     </style>
 </head>
 <body>
 
-    <h2 style="color:#2c3e50;">🎛️ Panel de Control</h2>
+    <h2>Cargar MP3</h2>
 
-    <div style="display:flex; gap:20px;">
+    <!-- Subir MP3 -->
+    <input type="file" id="audioInput" accept="audio/mp3, audio/mpeg">
 
-        <!-- CUADRADO BLANCO PRINCIPAL -->
-        <div style="background:#ffffff; padding:20px; width:350px; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
+    <br><br>
 
-            <h3>📝 Frase</h3>
-            <input type="text" id="fraseInput" placeholder="Escribe tu frase..." style="width:100%; padding:8px; border-radius:6px; border:1px solid #ccc;">
-            <br><br>
+    <!-- Reproductor -->
+    <audio id="player" controls></audio>
 
-            <h3>🎵 Audio (MP3)</h3>
-            <button id="btnMP3" style="padding:10px; width:100%; border:none; border-radius:6px; background:#3498db; color:white; cursor:pointer;">Subir MP3</button>
-            <input type="file" id="audioInput" accept="audio/mp3,audio/mpeg" style="display:none;">
-            <p id="nombreArchivo" style="margin-top:10px; color:#555;">Ningún archivo seleccionado</p>
+    <!-- Botón para descargar -->
+    <br>
+    <a id="downloadLink">⬇️ Descargar MP3</a>
 
-            <br>
-            <button id="agregarBtn" style="padding:10px; width:100%; background:#27ae60; color:white; border:none; border-radius:6px; cursor:pointer;">Agregar</button>
-        </div>
+    <hr>
 
-        <!-- LISTA -->
-        <div style="flex:1; background:#f5f5f5; padding:20px; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
-            <h3>📋 Frases y sonidos</h3>
-            <table id="tabla" style="width:100%; border-collapse:collapse;">
-                <thead>
-                    <tr style="background:#ddd;">
-                        <th style="padding:8px; border:1px solid #bbb;">Frase</th>
-                        <th style="padding:8px; border:1px solid #bbb;">Sonido</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+    <!-- Micrófono -->
+    <button id="activarMic">🎤 Activar micrófono</button>
+    <span id="micStatus"></span>
+
+    <hr>
+
+    <div class="fraseBox">
+        <h3>Agregar frase</h3>
+        <input type="text" id="fraseInput" placeholder="Escribe tu frase..." size="40">
+        <button id="agregarFrase">Agregar</button>
+
+        <div id="listaFrases"></div>
     </div>
 
-    <br>
-    <button id="startBtn" style="padding:12px 20px; font-size:16px; background:#e67e22; border:none; color:white; border-radius:8px; cursor:pointer;">🎙️ Activar micrófono</button>
-    <p id="status" style="font-weight:bold; margin-top:15px;">Micrófono apagado.</p>
+    <script>
+        // === AUDIO ===
+        const audioInput = document.getElementById("audioInput");
+        const player = document.getElementById("player");
+        const downloadLink = document.getElementById("downloadLink");
 
+        audioInput.addEventListener("change", e => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-<script>
-    // ELEMENTOS
-    const btnMP3 = document.getElementById("btnMP3");
-    const audioInput = document.getElementById("audioInput");
-    const nombreArchivo = document.getElementById("nombreArchivo");
-    const agregarBtn = document.getElementById("agregarBtn");
-    const tabla = document.querySelector("#tabla tbody");
-    const startBtn = document.getElementById("startBtn");
-    const status = document.getElementById("status");
+            const url = URL.createObjectURL(file);
+            player.src = url;
 
-    const frases = {};
+            downloadLink.href = url;
+            downloadLink.download = file.name;
+            downloadLink.style.display = "inline-block";
+        });
 
-    // BOTÓN MP3
-    btnMP3.onclick = () => audioInput.click();
+        // === FRASES ===
+        const fraseInput = document.getElementById("fraseInput");
+        const agregarFrase = document.getElementById("agregarFrase");
+        const listaFrases = document.getElementById("listaFrases");
 
-    audioInput.onchange = () => {
-        const file = audioInput.files[0];
-        nombreArchivo.textContent = file ? file.name : "Ningún archivo seleccionado";
-    };
+        agregarFrase.addEventListener("click", () => {
+            const texto = fraseInput.value.trim();
+            if (texto === "") return;
 
-    // AGREGAR
-    agregarBtn.onclick = () => {
-        const frase = document.getElementById("fraseInput").value.trim().toLowerCase();
-        const file = audioInput.files[0];
+            const div = document.createElement("div");
+            div.className = "fraseItem";
+            div.textContent = texto;
 
-        if (!frase || !file) {
-            alert("Escribe una frase y selecciona un MP3.");
-            return;
-        }
+            listaFrases.appendChild(div);
+            fraseInput.value = "";
+        });
 
-        const url = URL.createObjectURL(file);
-        frases[frase] = url;
+        // === MICRÓFONO CONTINUO ===
+        const activarMic = document.getElementById("activarMic");
+        const micStatus = document.getElementById("micStatus");
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td style='border:1px solid #bbb; padding:8px;'>${frase}</td>
-                        <td style='border:1px solid #bbb; padding:8px;'>${file.name}</td>`;
-        tabla.appendChild(tr);
+        let recognition;
+        let escuchando = false;
 
-        document.getElementById("fraseInput").value = "";
-        audioInput.value = "";
-        nombreArchivo.textContent = "Ningún archivo seleccionado";
-    };
+        activarMic.addEventListener("click", () => {
+            if (escuchando) return;
 
-    // MICRÓFONO
-    startBtn.onclick = () => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert("Tu navegador no soporta reconocimiento de voz.");
-            return;
-        }
+            recognition = new(window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = "es-ES";
+            recognition.continuous = true;
+            recognition.interimResults = false;
 
-        const rec = new SpeechRecognition();
-        rec.lang = "es-ES";
-        rec.continuous = true;
+            recognition.onstart = () => {
+                escuchando = true;
+                micStatus.textContent = "Micrófono activo";
+            };
 
-        rec.onstart = () => status.textContent = "🎙️ Escuchando...";
-        rec.onresult = e => {
-            const contenido = e.results[e.resultIndex][0].transcript.toLowerCase();
-            status.textContent = `Dijiste: ${contenido}`;
+            recognition.onresult = (event) => {
+                let texto = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
 
-            for (const f in frases) {
-                if (contenido.includes(f)) {
-                    new Audio(frases[f]).play();
+                const frases = Array.from(document.querySelectorAll('.fraseItem')).map(e=>e.textContent.toLowerCase());
+                let index = frases.indexOf(texto);
+
+                if(index >= 0){
+                    player.currentTime = 0;
+                    player.play();
                 }
-            }
-        };
+            };
 
-        rec.onerror = () => status.textContent = "❌ Error";
+            recognition.onend = () => {
+                // auto-reiniciar para que NUNCA se apague
+                recognition.start();
+            };
 
-        rec.start();
-    };
-        
-        // === MICROFONO (grabación continua) ===
-        const micBtn = document.createElement('button');
-        micBtn.id = 'micBtn';
-        micBtn.textContent = '🎤 Activar micrófono';
-        document.body.insertBefore(micBtn, document.body.children[3]);
-
-        const micStatus = document.createElement('div');
-        micStatus.id = 'micStatus';
-        micStatus.style.marginTop = '5px';
-        document.body.insertBefore(micStatus, document.body.children[4]);
-
-        let mediaRecorder;
-        let chunks = [];
-        let isRecording = false;
-
-        micBtn.addEventListener('click', async () => {
-            if (!isRecording) {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-
-                mediaRecorder.ondataavailable = e => {
-                    chunks.push(e.data);
-                };
-
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'audio/mp3' });
-                    chunks = [];
-                    const url = URL.createObjectURL(blob);
-                    const div = document.createElement('div');
-                    div.className = 'fraseItem';
-                    div.textContent = '🎤 Frase grabada (mic)';
-                    listaFrases.appendChild(div);
-
-                    // Reiniciar grabación automáticamente
-                    mediaRecorder.start();
-                };
-
-                mediaRecorder.start();
-                micStatus.textContent = 'Grabando (continuo)...';
-                micBtn.textContent = 'Micrófono activo';
-                isRecording = true;
-            }
+            recognition.start();
         });
 
-// === MICRÓFONO CONTINUO ===
-let micStream;
-let mediaRecorder;
-let escuchando = false;
-
-async function iniciarMicrofono() {
-    if (escuchando) return; // ya está encendido
-    escuchando = true;
-
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(micStream);
-
-    mediaRecorder.ondataavailable = (e) => {
-        // No guardamos frases, solo dejamos que escuche continuo
-    };
-
-    mediaRecorder.start();
-}
-
-// Activamos el micrófono automáticamente cuando empieza cualquier reproducción
-player.addEventListener("play", () => {
-    iniciarMicrofono();
-});
-
-// Cuando termine el audio, el micrófono sigue encendido, no se toca nada
-
-// === MICROFONO RECONOCIMIENTO ===
-let recognition;
-try {
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = "es-ES";
-    recognition.continuous = true;
-    recognition.interimResults = false;
-} catch (e) {
-    console.error("Reconocimiento no soportado");
-}
-if (recognition) {
-    recognition.onresult = e => {
-        const texto = e.results[e.results.length - 1][0].transcript.trim();
-        const items = document.querySelectorAll('.fraseItem');
-        items.forEach(div => {
-            if (div.textContent.toLowerCase() === texto.toLowerCase()) {
-                const nuevoPlayer = new Audio(player.src);
-                nuevoPlayer.play();
-            }
-        });
-    };
-    recognition.onend = () => recognition.start();
-    recognition.start();
-}
-// === FIN MICROFONO ===
-</script>
+    </script>
 
 </body>
 </html>
