@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Audio Loader</title>
+    <title>Capcom Voice Trigger</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -10,48 +10,134 @@
         }
         #downloadLink {
             display: none;
-            margin-top: 15px;
+            margin-top: 10px;
+        }
+        .fraseBox {
+            margin-top: 25px;
+        }
+        .fraseItem {
+            background:#eee;
+            padding:8px;
+            margin-top:5px;
+            border-radius:6px;
+            font-weight:bold;
         }
     </style>
 </head>
 <body>
 
-    <h2>Cargar MP3</h2>
+    <h2 style="color:#2c3e50;">🎛️ Panel de Control</h2>
 
-    <!-- Subir archivo -->
-    <input type="file" id="audioInput" accept="audio/mp3, audio/mpeg">
+    <div style="display:flex; gap:20px;">
 
-    <br><br>
+        <!-- CUADRADO BLANCO PRINCIPAL -->
+        <div style="background:#ffffff; padding:20px; width:350px; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
 
-    <!-- Reproductor -->
-    <audio id="player" controls></audio>
+            <h3>📝 Frase</h3>
+            <input type="text" id="fraseInput" placeholder="Escribe tu frase..." style="width:100%; padding:8px; border-radius:6px; border:1px solid #ccc;">
+            <br><br>
+
+            <h3>🎵 Audio (MP3)</h3>
+            <button id="btnMP3" style="padding:10px; width:100%; border:none; border-radius:6px; background:#3498db; color:white; cursor:pointer;">Subir MP3</button>
+            <input type="file" id="audioInput" accept="audio/mp3,audio/mpeg" style="display:none;">
+            <p id="nombreArchivo" style="margin-top:10px; color:#555;">Ningún archivo seleccionado</p>
+
+            <br>
+            <button id="agregarBtn" style="padding:10px; width:100%; background:#27ae60; color:white; border:none; border-radius:6px; cursor:pointer;">Agregar</button>
+        </div>
+
+        <!-- LISTA -->
+        <div style="flex:1; background:#f5f5f5; padding:20px; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
+            <h3>📋 Frases y sonidos</h3>
+            <table id="tabla" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#ddd;">
+                        <th style="padding:8px; border:1px solid #bbb;">Frase</th>
+                        <th style="padding:8px; border:1px solid #bbb;">Sonido</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 
     <br>
+    <button id="startBtn" style="padding:12px 20px; font-size:16px; background:#e67e22; border:none; color:white; border-radius:8px; cursor:pointer;">🎙️ Activar micrófono</button>
+    <p id="status" style="font-weight:bold; margin-top:15px;">Micrófono apagado.</p>
 
-    <!-- Botón para descargar -->
-    <a id="downloadLink" download="audio_subido.mp3">⬇️ Descargar MP3</a>
 
-    <script>
-        const input = document.getElementById("audioInput");
-        const player = document.getElementById("player");
-        const downloadLink = document.getElementById("downloadLink");
+<script>
+    // ELEMENTOS
+    const btnMP3 = document.getElementById("btnMP3");
+    const audioInput = document.getElementById("audioInput");
+    const nombreArchivo = document.getElementById("nombreArchivo");
+    const agregarBtn = document.getElementById("agregarBtn");
+    const tabla = document.querySelector("#tabla tbody");
+    const startBtn = document.getElementById("startBtn");
+    const status = document.getElementById("status");
 
-        input.addEventListener("change", (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
+    const frases = {};
 
-            // Crear URL local del archivo
-            const url = URL.createObjectURL(file);
+    // BOTÓN MP3
+    btnMP3.onclick = () => audioInput.click();
 
-            // Establecer audio
-            player.src = url;
+    audioInput.onchange = () => {
+        const file = audioInput.files[0];
+        nombreArchivo.textContent = file ? file.name : "Ningún archivo seleccionado";
+    };
 
-            // Preparar link de descarga
-            downloadLink.href = url;
-            downloadLink.download = file.name;
-            downloadLink.style.display = "inline-block";
-        });
-    </script>
+    // AGREGAR
+    agregarBtn.onclick = () => {
+        const frase = document.getElementById("fraseInput").value.trim().toLowerCase();
+        const file = audioInput.files[0];
+
+        if (!frase || !file) {
+            alert("Escribe una frase y selecciona un MP3.");
+            return;
+        }
+
+        const url = URL.createObjectURL(file);
+        frases[frase] = url;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td style='border:1px solid #bbb; padding:8px;'>${frase}</td>
+                        <td style='border:1px solid #bbb; padding:8px;'>${file.name}</td>`;
+        tabla.appendChild(tr);
+
+        document.getElementById("fraseInput").value = "";
+        audioInput.value = "";
+        nombreArchivo.textContent = "Ningún archivo seleccionado";
+    };
+
+    // MICRÓFONO
+    startBtn.onclick = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Tu navegador no soporta reconocimiento de voz.");
+            return;
+        }
+
+        const rec = new SpeechRecognition();
+        rec.lang = "es-ES";
+        rec.continuous = true;
+
+        rec.onstart = () => status.textContent = "🎙️ Escuchando...";
+        rec.onresult = e => {
+            const contenido = e.results[e.resultIndex][0].transcript.toLowerCase();
+            status.textContent = `Dijiste: ${contenido}`;
+
+            for (const f in frases) {
+                if (contenido.includes(f)) {
+                    new Audio(frases[f]).play();
+                }
+            }
+        };
+
+        rec.onerror = () => status.textContent = "❌ Error";
+
+        rec.start();
+    };
+</script>
 
 </body>
 </html>
