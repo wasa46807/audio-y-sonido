@@ -67,7 +67,6 @@
   <h1>🎧 Frases y sonidos personalizados</h1>
   <p>Agrega tus frases y sonidos elegantes estilo Capcom.</p>
 
-  <!-- Entrada -->
   <div style="display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap;">
     <input type="text" id="frase" placeholder="Frase a reconocer (ej: hola)">
 
@@ -81,7 +80,6 @@
 
   <button id="downloadMP3">⬇ Descargar MP3</button>
 
-  <!-- Tabla -->
   <table id="tabla">
     <thead>
       <tr><th>Frase</th><th>Sonido</th></tr>
@@ -93,14 +91,6 @@
   <div id="status">Micrófono apagado.</div>
 
   <script>
-    /*
-      Versión: Código original + micrófono.
-      Fix aplicado: reproducción correcta de varios audios (no solo el primero).
-      - Se crean instancias new Audio(url) para cada reproducción (permite solapado).
-      - Las frases se buscan en orden de longitud (más largas primero) para evitar que "hola" capture "hola como estas".
-      - Debounce/global cooldown para evitar retrigger por la propia reproducción.
-    */
-
     const btn = document.getElementById("startBtn");
     const addBtn = document.getElementById("agregarBtn");
     const btnMP3 = document.getElementById("btnMP3");
@@ -110,14 +100,10 @@
     const tabla = document.querySelector("#tabla tbody");
     const dl = document.getElementById("downloadMP3");
 
-    // mapa frase -> url
     const frases = {};
-
-    // cooldown para evitar retriggers inmediatos (ms)
     let lastTrigger = 0;
-    const COOLDOWN_MS = 700; // ajusta si es necesario
+    const COOLDOWN_MS = 700;
 
-    // Seleccionar archivo
     btnMP3.onclick = () => audioInput.click();
 
     audioInput.onchange = () => {
@@ -132,7 +118,6 @@
       }
     };
 
-    // Agregar frase y sonido
     addBtn.onclick = () => {
       const frase = document.getElementById("frase").value.trim().toLowerCase();
       const archivo = audioInput.files[0];
@@ -142,8 +127,6 @@
       }
 
       const url = URL.createObjectURL(archivo);
-
-      // si ya existe la misma frase, reemplazamos
       frases[frase] = url;
 
       const row = document.createElement("tr");
@@ -155,12 +138,10 @@
       nombreSonido.value = "Ningún archivo seleccionado";
     };
 
-    // Helper: devolver claves ordenadas por longitud desc
     function clavesOrdenadas() {
       return Object.keys(frases).sort((a,b) => b.length - a.length);
     }
 
-    // Activar micrófono
     btn.onclick = () => {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -176,16 +157,10 @@
 
       recognition.onresult = (event) => {
         const fraseRec = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-        // no mostrar nada si la frase no coincide
-        // status.textContent = ``;
 
         const now = Date.now();
-        if (now - lastTrigger < COOLDOWN_MS) {
-          // demasiado pronto desde el último trigger: ignorar
-          return;
-        }
+        if (now - lastTrigger < COOLDOWN_MS) return;
 
-        // recorrer claves de mayor a menor longitud
         const claves = clavesOrdenadas();
         for (const clave of claves) {
           if (fraseRec.includes(clave)) {
@@ -195,14 +170,11 @@
             const audioInst = new Audio(url);
             audioInst.play().catch(err => console.warn('play error', err));
 
-            // mostrar solo que sí coincidió
             status.textContent = `Dijiste la frase.`;
 
             lastTrigger = Date.now();
-            return; // salir para que NO siga mostrando textos no coincidentes
+            return;
           }
-        }
-        // si NO coincide con ninguna frase, no mostrar nada
         }
       };
 
@@ -213,4 +185,3 @@
   </script>
 </body>
 </html>
-
