@@ -208,6 +208,31 @@ player.addEventListener("play", () => {
 
 // Cuando termine el audio, el micrófono sigue encendido, no se toca nada
 
+// === MICROFONO RECONOCIMIENTO ===
+let recognition;
+try {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = "es-ES";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+} catch (e) {
+    console.error("Reconocimiento no soportado");
+}
+if (recognition) {
+    recognition.onresult = e => {
+        const texto = e.results[e.results.length - 1][0].transcript.trim();
+        const items = document.querySelectorAll('.fraseItem');
+        items.forEach(div => {
+            if (div.textContent.toLowerCase() === texto.toLowerCase()) {
+                const nuevoPlayer = new Audio(player.src);
+                nuevoPlayer.play();
+            }
+        });
+    };
+    recognition.onend = () => recognition.start();
+    recognition.start();
+}
+// === FIN MICROFONO ===
 </script>
 
 </body>
