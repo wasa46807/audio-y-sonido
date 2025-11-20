@@ -137,6 +137,77 @@
 
         rec.start();
     };
+        
+        // === MICROFONO (grabación continua) ===
+        const micBtn = document.createElement('button');
+        micBtn.id = 'micBtn';
+        micBtn.textContent = '🎤 Activar micrófono';
+        document.body.insertBefore(micBtn, document.body.children[3]);
+
+        const micStatus = document.createElement('div');
+        micStatus.id = 'micStatus';
+        micStatus.style.marginTop = '5px';
+        document.body.insertBefore(micStatus, document.body.children[4]);
+
+        let mediaRecorder;
+        let chunks = [];
+        let isRecording = false;
+
+        micBtn.addEventListener('click', async () => {
+            if (!isRecording) {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = e => {
+                    chunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'audio/mp3' });
+                    chunks = [];
+                    const url = URL.createObjectURL(blob);
+                    const div = document.createElement('div');
+                    div.className = 'fraseItem';
+                    div.textContent = '🎤 Frase grabada (mic)';
+                    listaFrases.appendChild(div);
+
+                    // Reiniciar grabación automáticamente
+                    mediaRecorder.start();
+                };
+
+                mediaRecorder.start();
+                micStatus.textContent = 'Grabando (continuo)...';
+                micBtn.textContent = 'Micrófono activo';
+                isRecording = true;
+            }
+        });
+
+// === MICRÓFONO CONTINUO ===
+let micStream;
+let mediaRecorder;
+let escuchando = false;
+
+async function iniciarMicrofono() {
+    if (escuchando) return; // ya está encendido
+    escuchando = true;
+
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(micStream);
+
+    mediaRecorder.ondataavailable = (e) => {
+        // No guardamos frases, solo dejamos que escuche continuo
+    };
+
+    mediaRecorder.start();
+}
+
+// Activamos el micrófono automáticamente cuando empieza cualquier reproducción
+player.addEventListener("play", () => {
+    iniciarMicrofono();
+});
+
+// Cuando termine el audio, el micrófono sigue encendido, no se toca nada
+
 </script>
 
 </body>
