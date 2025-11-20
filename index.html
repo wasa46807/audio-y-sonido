@@ -1,142 +1,174 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Capcom Voice Trigger</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
-        #downloadLink {
-            display: none;
-            margin-top: 10px;
-        }
-        .fraseBox {
-            margin-top: 25px;
-        }
-        .fraseItem {
-            background:#eee;
-            padding:8px;
-            margin-top:5px;
-            border-radius:6px;
-            font-weight:bold;
-        }
-        #micStatus{
-            font-weight:bold;
-            color:green;
-            margin-left:10px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reconocimiento de voz con sonidos personalizados 🎤</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+      text-align: center;
+      padding: 2em;
+      color: #fff;
+    }
+    h1 {
+      color: #f5f5f5;
+      text-shadow: 0 0 10px #00aaff;
+    }
+    input, button {
+      margin: 6px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #555;
+      font-size: 14px;
+      background: #222;
+      color: #fff;
+    }
+    button {
+      cursor: pointer;
+      background-color: #0078d7;
+      border: none;
+      transition: 0.2s;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #ddd;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 80%;
+      background: #111;
+      box-shadow: 0 0 10px #000;
+    }
+    td, th {
+      border: 1px solid #333;
+      padding: 8px;
+      color: #fff;
+    }
+    #downloadMP3 {
+      background:#008cff;
+      border:none;
+      padding:10px;
+      border-radius:8px;
+      color:white;
+      cursor:pointer;
+      display:none;
+      margin-top:10px;
+    }
+  </style>
 </head>
 <body>
+  <h1>🎧 Frases y sonidos personalizados</h1>
+  <p>Agrega tus frases y sonidos elegantes estilo Capcom.</p>
 
-    <h2>Cargar MP3</h2>
+  <!-- Entrada -->
+  <div style="display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap;">
+    <input type="text" id="frase" placeholder="Frase a reconocer (ej: hola)">
 
-    <!-- Subir MP3 -->
-    <input type="file" id="audioInput" accept="audio/mp3, audio/mpeg">
+    <button id="btnMP3" type="button">🎵 Subir MP3</button>
+    <input type="file" id="audioInput" accept="audio/mp3,audio/mpeg,audio/ogg" style="display:none;">
 
-    <br><br>
+    <input type="text" id="nombreSonido" placeholder="Ningún archivo seleccionado" readonly style="flex:1; padding:5px;">
 
-    <!-- Reproductor -->
-    <audio id="player" controls></audio>
+    <button id="agregarBtn">Agregar</button>
+  </div>
 
-    <!-- Botón para descargar -->
-    <br>
-    <a id="downloadLink">⬇️ Descargar MP3</a>
+  <button id="downloadMP3">⬇ Descargar MP3</button>
 
-    <hr>
+  <!-- Tabla -->
+  <table id="tabla">
+    <thead>
+      <tr><th>Frase</th><th>Sonido</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-    <!-- Micrófono -->
-    <button id="activarMic">🎤 Activar micrófono</button>
-    <span id="micStatus"></span>
+  <button id="startBtn">🎙️ Activar micrófono</button>
+  <div id="status">Micrófono apagado.</div>
 
-    <hr>
+  <script>
+    const btn = document.getElementById("startBtn");
+    const addBtn = document.getElementById("agregarBtn");
+    const btnMP3 = document.getElementById("btnMP3");
+    const audioInput = document.getElementById("audioInput");
+    const nombreSonido = document.getElementById("nombreSonido");
+    const status = document.getElementById("status");
+    const tabla = document.querySelector("#tabla tbody");
+    const dl = document.getElementById("downloadMP3");
+    const frases = {};
 
-    <div class="fraseBox">
-        <h3>Agregar frase</h3>
-        <input type="text" id="fraseInput" placeholder="Escribe tu frase..." size="40">
-        <button id="agregarFrase">Agregar</button>
+    // Seleccionar archivo
+    btnMP3.onclick = () => audioInput.click();
 
-        <div id="listaFrases"></div>
-    </div>
+    audioInput.onchange = () => {
+      const archivo = audioInput.files[0];
+      nombreSonido.value = archivo ? archivo.name : "Ningún archivo seleccionado";
 
-    <script>
-        // === AUDIO ===
-        const audioInput = document.getElementById("audioInput");
-        const player = document.getElementById("player");
-        const downloadLink = document.getElementById("downloadLink");
+      if (archivo) {
+        const url = URL.createObjectURL(archivo);
+        dl.style.display = "inline-block";
+        dl.href = url;
+        dl.download = archivo.name;
+      }
+    };
 
-        audioInput.addEventListener("change", e => {
-            const file = e.target.files[0];
-            if (!file) return;
+    // Agregar frase y sonido
+    addBtn.onclick = () => {
+      const frase = document.getElementById("frase").value.trim().toLowerCase();
+      const archivo = audioInput.files[0];
+      if (!frase || !archivo) {
+        alert("Escribe una frase y selecciona un MP3.");
+        return;
+      }
 
-            const url = URL.createObjectURL(file);
-            player.src = url;
+      const url = URL.createObjectURL(archivo);
+      frases[frase] = url;
 
-            downloadLink.href = url;
-            downloadLink.download = file.name;
-            downloadLink.style.display = "inline-block";
-        });
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${frase}</td><td>${archivo.name}</td>`;
+      tabla.appendChild(row);
 
-        // === FRASES ===
-        const fraseInput = document.getElementById("fraseInput");
-        const agregarFrase = document.getElementById("agregarFrase");
-        const listaFrases = document.getElementById("listaFrases");
+      document.getElementById("frase").value = "";
+      audioInput.value = "";
+      nombreSonido.value = "Ningún archivo seleccionado";
+    };
 
-        agregarFrase.addEventListener("click", () => {
-            const texto = fraseInput.value.trim();
-            if (texto === "") return;
+    // Activar micrófono
+    btn.onclick = () => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Tu navegador no soporta reconocimiento de voz.");
+        return;
+      }
 
-            const div = document.createElement("div");
-            div.className = "fraseItem";
-            div.textContent = texto;
+      const recognition = new SpeechRecognition();
+      recognition.lang = "es-ES";
+      recognition.continuous = true;
 
-            listaFrases.appendChild(div);
-            fraseInput.value = "";
-        });
+      recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
 
-        // === MICRÓFONO CONTINUO ===
-        const activarMic = document.getElementById("activarMic");
-        const micStatus = document.getElementById("micStatus");
+      recognition.onresult = (event) => {
+        const frase = event.results[event.results.length - 1][0].transcript.toLowerCase();
+        status.textContent = `Dijiste: "${frase}"`;
 
-        let recognition;
-        let escuchando = false;
+        for (const clave in frases) {
+          if (frase.includes(clave)) {
+            const audio = new Audio(frases[clave]);
+            audio.play();
+          }
+        }
+      };
 
-        activarMic.addEventListener("click", () => {
-            if (escuchando) return;
+      recognition.onerror = () => status.textContent = "❌ Error en el micrófono.";
 
-            recognition = new(window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = "es-ES";
-            recognition.continuous = true;
-            recognition.interimResults = false;
-
-            recognition.onstart = () => {
-                escuchando = true;
-                micStatus.textContent = "Micrófono activo";
-            };
-
-            recognition.onresult = (event) => {
-                let texto = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-
-                const frases = Array.from(document.querySelectorAll('.fraseItem')).map(e=>e.textContent.toLowerCase());
-                let index = frases.indexOf(texto);
-
-                if(index >= 0){
-                    player.currentTime = 0;
-                    player.play();
-                }
-            };
-
-            recognition.onend = () => {
-                // auto-reiniciar para que NUNCA se apague
-                recognition.start();
-            };
-
-            recognition.start();
-        });
-
-    </script>
-
+      recognition.start();
+    };
+  </script>
 </body>
 </html>
