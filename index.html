@@ -93,6 +93,14 @@
   <div id="status">Micrófono apagado.</div>
 
   <script>
+    /*
+      Versión: Código original + micrófono.
+      Fix aplicado: reproducción correcta de varios audios (no solo el primero).
+      - Se crean instancias new Audio(url) para cada reproducción (permite solapado).
+      - Las frases se buscan en orden de longitud (más largas primero) para evitar que "hola" capture "hola como estas".
+      - Debounce/global cooldown para evitar retrigger por la propia reproducción.
+    */
+
     const btn = document.getElementById("startBtn");
     const addBtn = document.getElementById("agregarBtn");
     const btnMP3 = document.getElementById("btnMP3");
@@ -101,7 +109,13 @@
     const status = document.getElementById("status");
     const tabla = document.querySelector("#tabla tbody");
     const dl = document.getElementById("downloadMP3");
+
+    // mapa frase -> url
     const frases = {};
+
+    // cooldown para evitar retriggers inmediatos (ms)
+    let lastTrigger = 0;
+    const COOLDOWN_MS = 700; // ajusta si es necesario
 
     // Seleccionar archivo
     btnMP3.onclick = () => audioInput.click();
@@ -128,6 +142,8 @@
       }
 
       const url = URL.createObjectURL(archivo);
+
+      // si ya existe la misma frase, reemplazamos
       frases[frase] = url;
 
       const row = document.createElement("tr");
@@ -138,6 +154,11 @@
       audioInput.value = "";
       nombreSonido.value = "Ningún archivo seleccionado";
     };
+
+    // Helper: devolver claves ordenadas por longitud desc
+    function clavesOrdenadas() {
+      return Object.keys(frases).sort((a,b) => b.length - a.length);
+    }
 
     // Activar micrófono
     btn.onclick = () => {
@@ -154,13 +175,32 @@
       recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
 
       recognition.onresult = (event) => {
-        const frase = event.results[event.results.length - 1][0].transcript.toLowerCase();
-        status.textContent = `Dijiste: "${frase}"`;
+        const fraseRec = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+        status.textContent = `Dijiste: "${fraseRec}"`;
 
-        for (const clave in frases) {
-          if (frase.includes(clave)) {
-            const audio = new Audio(frases[clave]);
-            audio.play();
+        const now = Date.now();
+        if (now - lastTrigger < COOLDOWN_MS) {
+          // demasiado pronto desde el último trigger: ignorar
+          return;
+        }
+
+        // recorrer claves de mayor a menor longitud
+        const claves = clavesOrdenadas();
+        for (const clave of claves) {
+          if (fraseRec.includes(clave)) {
+            const url = frases[clave];
+            if (!url) continue;
+
+            // reproducir con nueva instancia para permitir múltiples audios
+            const audioInst = new Audio(url);
+            audioInst.play().catch(err => {
+              console.warn('play error', err);
+            });
+
+            // marcar trigger y salir (si quieres permitir que varias frases coincidan a la vez,
+            // quita el break para que siga comprobando otras claves)
+            lastTrigger = Date.now();
+            break;
           }
         }
       };
