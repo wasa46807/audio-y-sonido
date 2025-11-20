@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Audio Loader</title>
+    <title>Audio + Frase</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,6 +11,14 @@
         #downloadLink {
             display: none;
             margin-top: 15px;
+        }
+        #fraseBox {
+            margin-top: 30px;
+        }
+        #fraseMostrada {
+            margin-top: 10px;
+            font-size: 20px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -31,25 +39,50 @@
     <!-- Botón para descargar -->
     <a id="downloadLink" download="audio_subido.mp3">⬇️ Descargar MP3</a>
 
+    <hr>
+
+    <!-- Frase -->
+    <div id="fraseBox">
+        <h3>Escribe tu frase:</h3>
+        <input type="text" id="fraseInput" placeholder="Escribe algo..." size="40">
+        <button id="guardarFrase">Guardar</button>
+
+        <p id="fraseMostrada"></p>
+    </div>
+
     <script>
-        const input = document.getElementById("audioInput");
+        const inputAudio = document.getElementById("audioInput");
         const player = document.getElementById("player");
         const downloadLink = document.getElementById("downloadLink");
 
-        input.addEventListener("change", (event) => {
+        const fraseInput = document.getElementById("fraseInput");
+        const guardarFrase = document.getElementById("guardarFrase");
+        const fraseMostrada = document.getElementById("fraseMostrada");
+
+        // Cargar y mostrar audio
+        inputAudio.addEventListener("change", (event) => {
             const file = event.target.files[0];
             if (!file) return;
 
-            // Crear URL local del archivo
             const url = URL.createObjectURL(file);
 
-            // Establecer audio
             player.src = url;
 
-            // Preparar link de descarga
             downloadLink.href = url;
             downloadLink.download = file.name;
             downloadLink.style.display = "inline-block";
+        });
+
+        // Guardar frase
+        guardarFrase.addEventListener("click", () => {
+            const texto = fraseInput.value.trim();
+
+            if (texto === "") {
+                fraseMostrada.textContent = "";
+                return;
+            }
+
+            fraseMostrada.textContent = "Frase: " + texto;
         });
     </script>
 
