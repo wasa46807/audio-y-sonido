@@ -176,7 +176,8 @@
 
       recognition.onresult = (event) => {
         const fraseRec = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-        status.textContent = `Dijiste: "${fraseRec}"`;
+        // no mostrar nada si la frase no coincide
+        // status.textContent = ``;
 
         const now = Date.now();
         if (now - lastTrigger < COOLDOWN_MS) {
@@ -191,17 +192,17 @@
             const url = frases[clave];
             if (!url) continue;
 
-            // reproducir con nueva instancia para permitir múltiples audios
             const audioInst = new Audio(url);
-            audioInst.play().catch(err => {
-              console.warn('play error', err);
-            });
+            audioInst.play().catch(err => console.warn('play error', err));
 
-            // marcar trigger y salir (si quieres permitir que varias frases coincidan a la vez,
-            // quita el break para que siga comprobando otras claves)
+            // mostrar solo que sí coincidió
+            status.textContent = `Dijiste la frase.`;
+
             lastTrigger = Date.now();
-            break;
+            return; // salir para que NO siga mostrando textos no coincidentes
           }
+        }
+        // si NO coincide con ninguna frase, no mostrar nada
         }
       };
 
@@ -212,3 +213,4 @@
   </script>
 </body>
 </html>
+
