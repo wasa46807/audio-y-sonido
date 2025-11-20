@@ -1,149 +1,57 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reconocimiento de voz con sonidos personalizados 🎤</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      text-align: center;
-      padding: 2em;
-      color: #222;
-    }
-    h1 {
-      color: #333;
-    }
-    input, button {
-      margin: 6px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    button {
-      cursor: pointer;
-      background-color: #0078d7;
-      color: white;
-      border: none;
-      transition: 0.2s;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-      color: #444;
-    }
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-      width: 80%;
-      background: #fff;
-    }
-    td, th {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Audio Loader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #downloadLink {
+            display: none;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
-  <h1>🎧 Frases y sonidos personalizados</h1>
-  <p>Agrega tus propias frases y sonidos. Luego presiona “Iniciar micrófono”.</p>
 
-  <!-- Sección de entrada -->
-  <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;">
-    <input type="text" id="frase" placeholder="Frase a reconocer (ej: hola)">
-    <button id="btnMP3" type="button">🎵 MP3</button>
-    <input type="file" id="audioInput" accept="audio/mp3,audio/mpeg,audio/ogg" style="display:none;">
-    <input type="text" id="nombreSonido" placeholder="Ningún archivo seleccionado" readonly style="flex:1; padding:5px;">
-    <button id="agregarBtn">Agregar</button>
-  </div>
+    <h2>Cargar MP3</h2>
 
-  <!-- Tabla -->
-  <table id="tabla">
-    <thead>
-      <tr><th>Frase</th><th>Sonido</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <!-- Subir archivo -->
+    <input type="file" id="audioInput" accept="audio/mp3, audio/mpeg">
 
-  <button id="startBtn">🎙️ Iniciar micrófono</button>
-  <div id="status">Micrófono apagado.</div>
+    <br><br>
 
-  <script>
-    const btn = document.getElementById("startBtn");
-    const addBtn = document.getElementById("agregarBtn");
-    const btnMP3 = document.getElementById("btnMP3");
-    const audioInput = document.getElementById("audioInput");
-    const nombreSonido = document.getElementById("nombreSonido");
-    const status = document.getElementById("status");
-    const tabla = document.querySelector("#tabla tbody");
-    const frases = {};
+    <!-- Reproductor -->
+    <audio id="player" controls></audio>
 
-    // Botón para seleccionar archivo
-    btnMP3.onclick = () => audioInput.click();
+    <br>
 
-    // Mostrar nombre del archivo
-    audioInput.onchange = () => {
-      const archivo = audioInput.files[0];
-      nombreSonido.value = archivo ? archivo.name : "Ningún archivo seleccionado";
-    };
+    <!-- Botón para descargar -->
+    <a id="downloadLink" download="audio_subido.mp3">⬇️ Descargar MP3</a>
 
-    // Agregar frase y sonido
-    addBtn.onclick = () => {
-      const frase = document.getElementById("frase").value.trim().toLowerCase();
-      const archivo = audioInput.files[0];
-      if (!frase || !archivo) {
-        alert("Por favor escribe una frase y selecciona un archivo de audio (.mp3 o .ogg)");
-        return;
-      }
+    <script>
+        const input = document.getElementById("audioInput");
+        const player = document.getElementById("player");
+        const downloadLink = document.getElementById("downloadLink");
 
-      const url = URL.createObjectURL(archivo);
-      frases[frase] = url;
+        input.addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
 
-      const row = document.createElement("tr");
-      row.innerHTML = `<td>${frase}</td><td>${archivo.name}</td>`;
-      tabla.appendChild(row);
+            // Crear URL local del archivo
+            const url = URL.createObjectURL(file);
 
-      document.getElementById("frase").value = "";
-      audioInput.value = "";
-      nombreSonido.value = "Ningún archivo seleccionado";
-    };
+            // Establecer audio
+            player.src = url;
 
-    // Activar micrófono
-    btn.onclick = () => {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.");
-        return;
-      }
+            // Preparar link de descarga
+            downloadLink.href = url;
+            downloadLink.download = file.name;
+            downloadLink.style.display = "inline-block";
+        });
+    </script>
 
-      const recognition = new SpeechRecognition();
-      recognition.lang = "es-ES";
-      recognition.continuous = false;
-
-      recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
-      recognition.onresult = (event) => {
-        const frase = event.results[0][0].transcript.toLowerCase();
-        status.textContent = `Dijiste: "${frase}"`;
-
-        for (const clave in frases) {
-          if (frase.includes(clave)) {
-            const audio = new Audio(frases[clave]);
-            audio.play();
-            status.textContent += " | 🔊 Reproduciendo sonido.";
-          }
-        }
-      };
-      recognition.onerror = () => status.textContent = "❌ Error al reconocer la voz.";
-      recognition.onend = () => status.textContent += " | Micrófono apagado.";
-
-      recognition.start();
-    };
-  </script>
 </body>
 </html>
-
