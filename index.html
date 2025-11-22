@@ -106,42 +106,5 @@
       recognition.lang = "es-ES";
       recognition.continuous = true;
       recognition.interimResults = false;
-
-      recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
-
-      recognition.onresult = (event) => {
-        const fraseRec = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-
-        const now = Date.now();
-        if (now - lastTrigger < COOLDOWN_MS) return;
-
-        const claves = clavesOrdenadas();
-        for (const clave of claves) {
-          if (fraseRec.includes(clave)) {
-            const url = frases[clave];
-            if (!url) continue;
-
-            const audioInst = new Audio(url);
-            audioInst.play().catch(err => console.warn('play error', err));
-
-            status.textContent = `Dijiste la frase.`;
-
-            lastTrigger = Date.now();
-            return;
-          }
-        }
-      };
-
-      recognition.onerror = () => status.textContent = "❌ Error en el micrófono.";
-
-      // 🔥 Mantener micrófono prendido SIEMPRE
-      recognition.onend = () => {
-        status.textContent = "🔄 Reenganchando micrófono...";
-        setTimeout(() => recognition.start(), 200);
-      };
-
-      recognition.start();
-    };
-  </script>
 </body>
 </html>
