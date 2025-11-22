@@ -5,62 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reconocimiento de voz con sonidos personalizados 🎤</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
-      text-align: center;
-      padding: 2em;
-      color: #fff;
-    }
-    h1 {
-      color: #f5f5f5;
-      text-shadow: 0 0 10px #00aaff;
-    }
-    input, button {
-      margin: 6px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #555;
-      font-size: 14px;
-      background: #222;
-      color: #fff;
-    }
-    button {
-      cursor: pointer;
-      background-color: #0078d7;
-      border: none;
-      transition: 0.2s;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-      color: #ddd;
-    }
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-      width: 80%;
-      background: #111;
-      box-shadow: 0 0 10px #000;
-    }
-    td, th {
-      border: 1px solid #333;
-      padding: 8px;
-      color: #fff;
-    }
-    #downloadMP3 {
-      background:#008cff;
-      border:none;
-      padding:10px;
-      border-radius:8px;
-      color:white;
-      cursor:pointer;
-      display:none;
-      margin-top:10px;
-    }
+    body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #0f0f0f, #1a1a1a); text-align: center; padding: 2em; color: #fff; }
+    h1 { color: #f5f5f5; text-shadow: 0 0 10px #00aaff; }
+    input, button { margin: 6px; padding: 10px; border-radius: 8px; border: 1px solid #555; font-size: 14px; background: #222; color: #fff; }
+    button { cursor: pointer; background-color: #0078d7; border: none; transition: 0.2s; }
+    button:hover { background-color: #005fa3; }
+    #status { margin-top: 20px; font-weight: bold; color: #ddd; }
+    table { margin: 20px auto; border-collapse: collapse; width: 80%; background: #111; box-shadow: 0 0 10px #000; }
+    td, th { border: 1px solid #333; padding: 8px; color: #fff; }
+    #downloadMP3 { background:#008cff; border:none; padding:10px; border-radius:8px; color:white; cursor:pointer; display:none; margin-top:10px; }
   </style>
 </head>
 <body>
@@ -152,6 +105,7 @@
       const recognition = new SpeechRecognition();
       recognition.lang = "es-ES";
       recognition.continuous = true;
+      recognition.interimResults = false;
 
       recognition.onstart = () => status.textContent = "🎙️ Escuchando...";
 
@@ -179,6 +133,12 @@
       };
 
       recognition.onerror = () => status.textContent = "❌ Error en el micrófono.";
+
+      // 🔥 Mantener micrófono prendido SIEMPRE
+      recognition.onend = () => {
+        status.textContent = "🔄 Reenganchando micrófono...";
+        setTimeout(() => recognition.start(), 200);
+      };
 
       recognition.start();
     };
