@@ -95,9 +95,9 @@
       return Object.keys(frases).sort((a,b) => b.length - a.length);
     }
 
-    // -----------------------------
-    // 🔥 MICRÓFONO SIEMPRE ENCENDIDO
-    // -----------------------------
+    // ----------------------------------------
+    // 🔥 MICRÓFONO SIEMPRE PRENDIDO (OPTIMIZADO)
+    // ----------------------------------------
     function iniciarMicrofonoSiempre() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -120,9 +120,6 @@
           .toLowerCase()
           .trim();
 
-        recognition.stop();
-        recognition.start();
-
         const now = Date.now();
         if (now - lastTrigger < COOLDOWN_MS) return;
 
@@ -142,12 +139,13 @@
       };
 
       recognition.onerror = () => {
-        status.textContent = "⚠️ Error. Reiniciando micrófono...";
+        status.textContent = "⚠️ Error. Reconectando...";
         setTimeout(() => recognition.start(), 300);
       };
 
       recognition.onend = () => {
-        recognition.start(); // Nunca permitir que se apague
+        status.textContent = "🎙️ Reconectando micrófono...";
+        setTimeout(() => recognition.start(), 150);
       };
 
       recognition.start();
@@ -157,3 +155,4 @@
   </script>
 </body>
 </html>
+
