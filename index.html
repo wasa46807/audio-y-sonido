@@ -44,6 +44,14 @@
   <div id="status">Micrófono apagado.</div>
 
   <script>
+    // 🔊 Reproductor desbloqueado
+    const unlockedAudio = new Audio();
+
+    // Habilita audio una vez que el usuario clickea
+    window.addEventListener("click", () => {
+      unlockedAudio.play().catch(()=>{});
+    });
+
     const btn = document.getElementById("startBtn");
     const addBtn = document.getElementById("agregarBtn");
     const btnMP3 = document.getElementById("btnMP3");
@@ -95,9 +103,9 @@
       return Object.keys(frases).sort((a,b) => b.length - a.length);
     }
 
-    // ----------------------------------------
-    // 🔥 MICRÓFONO SIEMPRE PRENDIDO (OPTIMIZADO)
-    // ----------------------------------------
+    // -----------------------------
+    // 🔥 MICRÓFONO SIEMPRE ENCENDIDO
+    // -----------------------------
     function iniciarMicrofonoSiempre() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -120,6 +128,9 @@
           .toLowerCase()
           .trim();
 
+        recognition.stop();
+        recognition.start();
+
         const now = Date.now();
         if (now - lastTrigger < COOLDOWN_MS) return;
 
@@ -129,7 +140,10 @@
             const url = frases[clave];
             if (!url) continue;
 
-            new Audio(url).play().catch(() => {});
+            // ▶️ Reproducir con reproductor desbloqueado
+            unlockedAudio.src = url;
+            unlockedAudio.play().catch(()=>{});
+
             status.textContent = `Frase detectada: "${clave}"`;
 
             lastTrigger = Date.now();
@@ -139,13 +153,12 @@
       };
 
       recognition.onerror = () => {
-        status.textContent = "⚠️ Error. Reconectando...";
+        status.textContent = "⚠️ Error. Reiniciando micrófono...";
         setTimeout(() => recognition.start(), 300);
       };
 
       recognition.onend = () => {
-        status.textContent = "🎙️ Reconectando micrófono...";
-        setTimeout(() => recognition.start(), 150);
+        recognition.start(); // Nunca permitir que se apague
       };
 
       recognition.start();
@@ -155,4 +168,3 @@
   </script>
 </body>
 </html>
-
